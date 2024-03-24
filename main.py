@@ -1,6 +1,7 @@
 import argparse
 import requests
 import time
+from colorama import Fore
 
 def fuzz_dirs(base_url, dirs):
     endpoints = []
@@ -19,7 +20,7 @@ def block_bypass(dirs):
 
 def check_block(base_url):
     if (requests.get(f"{base_url}/bitrix/tools/catalog_export/yandex_detail.php").status_code == 200) and (requests.get(f"{base_url}/bitrix/admin/").status_code == 403):
-        print("[!] Admin panel block detected, trying to bypass...")
+        print(Fore.YELLOW + "[!] Admin panel block detected, trying to bypass...")
         return True
     else:
         return False
@@ -41,9 +42,6 @@ def enum_users(user_list, login_endpoints):
 
     return valid_users
 
-
-
-        
 
 def main():
     parser = argparse.ArgumentParser(description="Bitrix recon tool")
@@ -81,23 +79,23 @@ def main():
 
     login_endpoints = fuzz_dirs(base_url, login_dirs)
     if login_endpoints:
-        print("[+] Found Bitrix login endpoints:")
+        print(Fore.GREEN + "[+] Found Bitrix login endpoints:")
         for dir in login_endpoints:
             print(dir)
     else:
         if blocked:
-            print("[-] Couldn't bypass admin panel block and no login endpoints found.")
+            print(Fore.RED + "[-] Couldn't bypass admin panel block and no login endpoints found.")
         else:
-            print("[-] No login endpoints found.")
+            print(Fore.RED + "[-] No login endpoints found.")
     
     valid_users = enum_users(user_list, login_endpoints)
 
     if valid_users:
-        print("[+] Usernames found:")
+        print(Fore.GREEN + "[+] Usernames found:")
         for user in valid_users:
             print(user)
     else:
-        print("[-] No usernames found.")
+        print(Fore.RED + "[-] No usernames found.")
 
     register_dirs = ["bitrix/wizards/bitrix/demo/public_files/ru/auth/?register=yes",
     "auth/?register=yes",
@@ -113,11 +111,11 @@ def main():
     ]
     register_endpoints = fuzz_dirs(base_url, register_dirs)
     if register_endpoints:
-        print("[+] Found Bitrix registration endpoints:")
+        print(Fore.GREEN + "[+] Found Bitrix registration endpoints:")
         for dir in register_endpoints:
             print(dir)
     else: 
-        print("[-] No registration endpoints found.")
+        print(Fore.RED + "[-] No registration endpoints found.")
 
 if __name__ == "__main__":
     main()
