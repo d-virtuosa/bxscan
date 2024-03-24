@@ -13,6 +13,16 @@ def fuzz_dirs(base_url, dirs):
             endpoints.append(url)
     return endpoints
 
+def fuzz_reg_dirs(base_url, dirs):
+    endpoints = []
+    for dir in dirs:
+        time.sleep(0.5)
+        url = f"{base_url}/{dir}"
+        response = requests.get(url)
+        if "Регистрация" in response.text:
+            endpoints.append(url)
+    return endpoints
+
 def block_bypass(dirs):
     dirs = list(map(lambda x: x.replace('bitrix', '%2e/%62%69%74%72%69%78'), dirs))
     dirs = list(map(lambda x: x.replace('admin', '%2e/%61%64%6d%69%6e'), dirs))
@@ -109,7 +119,7 @@ def main():
     "bitrix/modules/forum/install/admin/forum_index.php",
     "bitrix/wizards/bitrix/demo/public_files/ru/auth/index.php?register=yes"
     ]
-    register_endpoints = fuzz_dirs(base_url, register_dirs)
+    register_endpoints = fuzz_reg_dirs(base_url, register_dirs)
     if register_endpoints:
         print(Fore.GREEN + "[+] Found Bitrix registration endpoints:")
         for dir in register_endpoints:
