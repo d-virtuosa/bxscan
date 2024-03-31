@@ -10,3 +10,4 @@
 
 - 0.1.0 - Code rework and optimization, new features: custom user-agent, HTTP proxy suppport, custom username wordlists for enumeration, more informative output, different admin panel block bypass logic
 - 0.1.1 - Proxy output bug fix
+- 0.1.2 - Proxy is now working with https

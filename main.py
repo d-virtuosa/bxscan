@@ -3,6 +3,9 @@ import requests
 import time
 from colorama import Fore
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 def fuzz_dirs(base_url, dirs, headers, proxy, fuzz_type):
     endpoints = []
     for dir in dirs:
@@ -14,7 +17,7 @@ def fuzz_dirs(base_url, dirs, headers, proxy, fuzz_type):
     return endpoints
 
 def send_request(url, headers, proxy):
-    return requests.get(url, headers=headers, proxies=proxy)
+    return requests.get(url, headers=headers, proxies=proxy, verify=False)
 
 def check_block(base_url, headers, proxy):
     admin_url = f"{base_url}/bitrix/admin/"
@@ -33,7 +36,7 @@ def enum_users(user_list, login_endpoints, headers, proxy):
             'USER_CHECKWORD': '1'
         }
         url = f"{login_endpoint}?change_password=yes"
-        response = requests.post(url, data=payload, headers=headers, proxies=proxy)
+        response = requests.post(url, data=payload, headers=headers, proxies=proxy, verify=False)
         if "Пароль должен  быть не менее 6 символов длиной." in response.text:
             valid_users.append(user)
     return valid_users
@@ -47,18 +50,19 @@ def main():
     args = parser.parse_args()
 
     base_url = args.target
-    print(Fore.CYAN + "[*] Starting bxscan 0.1.1 against", base_url)
+    print(Fore.CYAN + "[*] Starting bxscan 0.1.2 against", base_url)
 
     if args.useragent:
         headers = {'User-Agent': args.useragent}
         print(Fore.CYAN + "[*] Using", args.useragent, "as User-Agent")
     else:
-        headers = {'User-Agent': 'bxscan/0.1.1'}
+        headers = {'User-Agent': 'bxscan/0.1.2'}
         print(Fore.CYAN + "[*] Using default User-Agent")
 
     if args.proxy:
         print(Fore.CYAN + "[*] Using HTTP proxy server", args.proxy)
-        proxy = {'http': args.proxy}
+        proxy = {'http': args.proxy,
+        'https':args.proxy}
     else:
         proxy = None
 
