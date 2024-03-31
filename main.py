@@ -47,18 +47,18 @@ def main():
     args = parser.parse_args()
 
     base_url = args.target
-    print(Fore.CYAN + "[*] Starting bxscan 0.1.0 against", base_url)
+    print(Fore.CYAN + "[*] Starting bxscan 0.1.1 against", base_url)
 
     if args.useragent:
         headers = {'User-Agent': args.useragent}
         print(Fore.CYAN + "[*] Using", args.useragent, "as User-Agent")
     else:
-        headers = {'User-Agent': 'bxscan/0.1.0'}
+        headers = {'User-Agent': 'bxscan/0.1.1'}
         print(Fore.CYAN + "[*] Using default User-Agent")
 
     if args.proxy:
+        print(Fore.CYAN + "[*] Using HTTP proxy server", args.proxy)
         proxy = {'http': args.proxy}
-        print(Fore.CYAN + "[*] Using HTTP proxy server", proxy)
     else:
         proxy = None
 
