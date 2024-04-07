@@ -1,0 +1,11 @@
+bitrix/wizards/bitrix/demo/public_files/ru/auth/?register=yes
+auth/?register=yes
+crm/?register=yes
+auth/oauth2/?register=yes
+bitrix/wizards/bitrix/demo/modules/examples/public/language/ru/examples/custom-registration/index.php
+bitrix/wizards/bitrix/demo/modules/examples/public/language/ru/examples/my-components/news_list.php?register=yes
+bitrix/wizards/bitrix/demo/modules/subscribe/public/personal/subscribe/subscr_edit.php?register=YES&sf_EMAIL=
+bitrix/modules/bitrix.siteinfoportal/install/wizards/bitrix/infoportal/site/public/ru/personal/profile/index.php?register=yes
+bitrix/modules/bitrix.siteinfoportal/install/wizards/bitrix/infoportal/site/public/ru/board/my/index.php?register=yes
+bitrix/modules/forum/install/admin/forum_index.php
+bitrix/wizards/bitrix/demo/public_files/ru/auth/index.php?register=yes
